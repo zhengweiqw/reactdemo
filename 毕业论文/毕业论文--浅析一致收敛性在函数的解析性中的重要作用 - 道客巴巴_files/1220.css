@@ -1,0 +1,23 @@
+@charset "utf-8";
+/*网站头部 和 阅读页*/
+.btnupload2{display:none !important;}
+.btnupload3{display:none !important;}
+.btnupload1{display:block !important;}
+.mainpart{margin:auto;width:1200px;}
+.bigsearch .stext{
+	font: 14px/1.5 "Microsoft YaHei","微软雅黑","SimSun","宋体";
+	width:310px;
+	padding:0 5px;
+	background-position:left 0;
+}
+.commonbox1 .box{
+	padding:10px 0px; 
+	height:164px;
+	width:910px;
+}
+.doctopic h1{width: 775px;}
+
+/*任务其他-详情*/
+.each_task_con{width: 910px;}
+.process{margin: 15px 0 0 145px;}
+.completionLeft{width: 930px;}

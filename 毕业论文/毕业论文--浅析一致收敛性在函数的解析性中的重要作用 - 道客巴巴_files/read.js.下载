@@ -1,0 +1,1516 @@
+$(document).ready(function(){
+    if(srl==1)
+    {
+        saveRlod();
+    }
+
+});
+var isArray = function(obj) {
+    return (Object.prototype.toString.call(obj)=="[object Array]") ? true : false;
+};
+function saveRlod()
+{
+    $.ajax({
+        url: root_path+'doc.php',
+        type: 'get',
+        dataType: 'html',
+        data: 'act=save_rl&srlid='+srlid,
+        success: function(data){
+
+        }
+    });
+}
+//压缩包文件收起
+$(function(){
+    $(".zip-arrow").click(function(event) {
+        var zhide = $(".zip-thead").hasClass("hide");
+        if (zhide) {
+            $(this).html("&#xe804;");
+            setCookie('zip_list_view',1);//展开状态
+            $(".zip-thead,.zip-tbody").removeClass('hide');//显示状态  正三角
+            $(".zip-msg").css({borderBottom:'1px solid #ccc'});
+        } else{
+            $(this).html("&#xe74c;");
+            setCookie('zip_list_view',2);//隐藏状态
+            $(".zip-thead,.zip-tbody").addClass('hide');//隐藏
+            $(".zip-msg").css({borderBottom:'none'});
+        }
+    });
+});
+
+
+//ajax加载压缩包文件的展示
+$(function () {
+    if (if_zip == 1) {
+        if(getCookie('current_cata_'+ product_id)){
+            changeZip(product_id, getCookie('current_cata_'+ product_id));
+        }else{
+            changeZip(product_id, 0);
+        }
+    }
+});
+
+function changeZip(product_id, cdb_zip_parent_id) {
+    setCookie('cdb_zip_parent_id_' + product_id, cdb_zip_parent_id);
+    $.ajax({
+        url: '/doc.php?act=zip_select_show',
+        type: "post",
+        data: {
+            zip_pid: product_id,
+            zip_pcode: product_code
+        },
+        dataType: "json",
+        success: function (msg) {
+            var html = "";
+            if (msg.if_next == 1) {
+                var parent_id = msg.parent_id;
+                html += '<tr onclick="changeZip(' + product_id + ', ' + parent_id + ')"><td class="zname" style="cursor: pointer;">返回上一级</td><td class="ztime"></td><td class="zpage"></td><td class="zpage"></td></tr>';
+            }
+            if(msg.list){
+                $.each(msg.list, function (m, n) {
+                    var current_cata= n.p_parent_id;
+                    //if(current_cata!=0){
+                    setCookie('current_cata_'+ product_id,current_cata);
+                    //}
+                    if (n.p_isfolder == 0) {
+                        //文档
+                        html += '<tr>';
+                        html += '<td class="zname">';
+                        if(n.is_doc){
+                            html += '<a href="/p-' + msg.zip_p_code + '.html?id=' + n.doc_code + '"><img class="zip-types" src="' + site_url + '/resources/images/type/'+ n.p_doc_format + '.png" alt="" />' + n.name + '</a>';
+                        }else{
+                            html += '<img class="zip-types" src="' + site_url + '/resources/images/type/'+ n.p_doc_format + '.png" alt="" />' + n.name;
+                        }
+                        html += '</td>';
+                        html += '<td class="ztime">' + n.time + '</td>';
+                        html += '<td class="zpage">' + n.size + '</td>';
+                        if(n.p_doc_pagecount){
+                            html += '<td class="zpage">' + n.p_doc_pagecount + '页</td>';
+                        }else{
+                            if(n.is_doc){
+                                html += '<td class="zpage">0页</td>';
+                            }else{
+                                html += '<td class="zpage">-</td>';
+                            }
+                        }
+                        html += '</tr>';
+                    } else {
+                        html += '<tr>';
+                        html += '<td class="zname"><a href="javascript:void(0);" onclick="changeZip(' + product_id + ',' + n.z_id + ')"><i class="iconfont zip-file">&#xe639;</i>' + n.name + '</a></td>';
+                        html += '<td class="ztime">' + n.time + '</td>';
+                        html += '<td class="zpage">-</td>';
+                        html += '<td class="zpage">-</td>';
+                        html += '</tr>';
+                    }
+                });
+            }
+            $('.zip_box').html(html);
+        }
+    });
+}
+
+
+$(document).on("click",".ym-header-tools",function(){
+    window.clearInterval(intervalId);
+});
+
+function getCookie(m_name)
+{
+    var m_cValue = "";
+    var m_cookies = document.cookie.split('; ');
+    for (var i = 0, l = m_cookies.length; i < l; i++) {
+        var m_parts = m_cookies[i].split('=');
+        if (m_parts[0]== m_name) {
+            if(m_parts.length>1)
+            {
+                m_cValue =  unescape(m_parts[1]);
+            }
+        }
+    }
+    return m_cValue;
+}
+function setCookie(name,value)
+{
+    var name = escape(name);
+    var value = escape(value);
+    path = "/";
+    path = path == "" ? "" : ";path=" + path;
+
+    var date = new Date();
+    var ms = 24*180*3600*1000;
+    date.setTime(date.getTime() + ms);
+    document.cookie = name + "=" + value  + path+"; expires=" + date.toGMTString();
+}
+function sendMessage()
+{
+    var login_if = getCookie("cdb_login_if");
+    if(login_if==1)
+    {
+        DOC88Window.win({message:'/info.php?act=send_message&username='+$("#txtPsellername").val(),width:600,height:270,title:'发私信',iframe:true});
+    }
+    else
+    {
+        DOC88Window.win({message: '/js/home/window.html?act=window_login&actMethod=message',width:600,height:270,title:'发私信',iframe:true});
+    }
+}
+function search_submit(){
+    keyword = document.getElementById("keyword").value;
+    var regEx = /[\^\{\}\?\*\\]/g;
+    keywordnew = keyword.replace(regEx, "");
+    regEx = /[\[\]\(\)\/]/g;
+    keywordnew = keywordnew.replace(regEx, " ");
+    if(keyword != keywordnew){
+        keyword = keywordnew;
+        document.getElementById("keyword").value = keyword;
+    }
+    if(keyword == ""){
+        document.getElementById("keyword").focus();
+        return false;
+    }
+    var searchForm = document.getElementById('searchForm');
+    searchForm.action='/tag/'+encodeURIComponent(document.getElementById("keyword").value);
+    searchForm.target="_blank";
+    return true;
+}
+
+function getPageContent(address){
+    $.ajax({
+        url: address,
+        dataType:"html",
+        success: function(msg){
+            $("#" + ShowDiv).html(msg);
+        }
+    });
+}
+function getOrderPageContent(address){
+    $.ajax({
+        url: address,
+        dataType:"address",
+        async:"false",
+        success: function(msg){
+            $("#ajaxorderlist").html(msg);
+        }
+    });
+}
+
+function getmsg2(pcode){
+    if(doccheckstate!=1)
+        return false;
+    $.ajax({
+        url: '/info.php',
+        type: 'get',
+        dataType: 'html',
+        data: 't=1&act=get_msg&pcode='+pcode+'&ajax=1&tm='+ Math.ceil(Math.random()*10000),
+        success: function(html){
+            $('#commentDiv').html(html);
+        }
+    });
+}
+//删除留言
+function deleteMsg(mid, pcode){
+    if(confirm("您确认删除留言吗?")==false)
+        return;
+    var address = root_path + "docmessage.php?act=del&messageid="+mid;
+    $.ajax({
+        url: address,
+        dataType:  'json',
+        success: function(msg){
+            alert(msg.message);
+            getmsg2(pcode);
+        }
+    });
+}
+function replyMsg(mid, pcode){
+    ShowDiv = "AjGuestBook";
+    getPageContent(root_path+"docmessage.php?act=re&rootpath="+root_path+"&messageid="+mid);
+}
+var m_docDownloadHtml = "";
+$(document).ready(function() {
+    //初始化页面html相关
+    pageInitialization();
+
+});
+
+//初始化页面html相关
+function pageInitialization() {
+    if(conif=="0"){
+        //var show_info='<button class="btnlong1" onclick="return goto_renwu()">到任务平台求助此文档</button>&nbsp;<button class="btncss1" onclick="return goto_uploadfile()">上传文档</button>';
+        var show_info = '<div class="down-popup-btn"><a class="btn-send-task" href="javascript:void(0);" onclick="return goto_renwu()">到任务平台求购此文档</a><a class="btn-cllect" href="javascript:void(0);" onclick="top.DOC88Window.close();parent.checkcollectproduct();">收藏此文档</a></div>';
+        var left_img = '<div class="down-img-left margin-t25"><img src="'+siteurl_static+'/resources/images/down-shortp.png"/></div>';
+    }else{
+
+        var show_info = '<div class="shortp-popup-btn"><a class="btn-pay-confirm" href="javascript:void(0);" onclick="parent.DOC88Window.close();showDocRecharge();">更多优惠充值</a>';
+        if(isWinOs())
+        {
+            var title = "下载稻壳阅读器，免费离线阅读";
+            var dkinstalled = getCookie("dkinstalled");
+            if(dkinstalled==1)
+            {
+                title = "使用稻壳阅读器，免费离线阅读";
+            }
+            //show_info+='<a class="btn-reader" href="javascript:void(0);" onclick="parent.downloaddkclient(0);">'+title+'</a></div>';
+        }
+        else
+        {
+            //show_info+='<a class="btn-cllect" href="javascript:void(0);" onclick="top.DOC88Window.close();parent.checkcollectproduct();">收藏此文档</a></div>';
+        } 
+        show_info+='</div>';
+        var left_img = '<div class="shortp-wx-code"><p>支付金额：<span class="orange" id="pay_money"></span></p><div class="wx-pay-box"><div class="doc_qrcode" id="doc_qrcode"></div><img class="wx-pay-logo" src="' + siteurl_static + '/assets/images/ajax-loader.gif" alt="微信支付"></div></div>';
+    }
+    var vip_price = '';
+    if(v_d_if==1)
+    {
+        if(!isNaN(downloadPrice))
+        {
+            if (conif!="0"||(u_v == 1 && conif == "0")){
+                var jf_lb = "VIP:"+Math.round(downloadPrice*0.8*100)+"积分";
+                vip_price = '&nbsp;&nbsp;<span  class="pop-doc-vip" >'+jf_lb+'</span>';
+            }else{
+                vip_price = '';
+            }
+
+            if (u_v == 1){
+                docprice = v_docprice;
+            }
+        }
+    }
+
+    var m_jf = Math.round(downloadPrice*100)+"积分";
+    if(isNaN(downloadPrice))
+    {
+        m_jf = downloadPrice;
+    }
+
+    if (ownPublish != 1 || stateBought == 0){
+        if(u_v == 1 && v_d_if == 1){
+            var h_test = '<h5 class="down-vip-h5">积分：<span class="orange down-vip-original">'+m_jf+'</span>'+vip_price+'</h5>';
+        }else if(v_d_if == 1){
+            var h_test = '<h5>积分：<span class="orange">'+m_jf+'</span>'+vip_price+'</h5>';
+        }else{
+            var h_test = '<h5>积分：<span class="orange">'+m_jf+'</span></h5>';
+        }
+    }
+
+    var lhtml = '您可以点击按钮下载此文档，稍后可到个人中心<a href="/uc/doc_manager.php?act=doc_list&state=bought">“我的下载”</a>中查看已下载的文档';
+    if(freeDLoadable==0)
+    {
+        lhtml = '您可以到任务平台求助此文档，让更多网友为您提供帮助';
+    }
+    
+    m_docDownloadHtml ='<div id="downlaodLoadDiv" style="display:none">';
+    m_docDownloadHtml +='<div style="width:100%; margin-left:auto; margin-right:auto; text-align:center;list-style:none; padding-top:20px;">';
+    m_docDownloadHtml +='<ul style="list-style:none;">';
+    m_docDownloadHtml +='<li style="padding-top:60px"><img src="'+siteurl_static+'/assets/images/ajax-loader.gif"/></li>';
+    m_docDownloadHtml +='</ul>';
+    m_docDownloadHtml +='</div>';
+    m_docDownloadHtml +='</div>';
+    
+
+    m_docDownloadHtml += '<div id="downsuccess" class="down-popup down-popup19" style="padding-top: 46px;display: none;">';
+    m_docDownloadHtml +='<div class="down-img-left" style="margin-top: 10px;padding-top: 0;">';
+    m_docDownloadHtml +='<img src="'+siteurl_static+'/resources/images/discount-pupup2.png"/>';
+    m_docDownloadHtml +='</div>';
+    m_docDownloadHtml +='<div class="down-popup-txt">';
+    m_docDownloadHtml +='<h5>文档下载成功</h5>';
+    m_docDownloadHtml +='<p class="gray9 prompt-text">如遇到文档下载失败，可重新下载此文档无需再次支付积分</p>';
+    m_docDownloadHtml +='<div class="down-popup-btn">';
+    m_docDownloadHtml +='<a class="btn-down" href="javascript:void(0);" onclick="checkDownload(0);">重新下载此文档</a>';
+    m_docDownloadHtml +='<a class="btn-checked" href="javascript:void(0);" onclick="location.href=\'/uc/doc_manager.php?act=doc_list&state=bought\'">查看下载记录</a>';
+    m_docDownloadHtml +='</div>';
+    m_docDownloadHtml +='</div>';
+    m_docDownloadHtml +='</div>';
+
+ 
+
+
+    m_docDownloadHtml+="<div id='bldownloadinfoAlert' style='overflow:hidden;'>"+
+        '<div class="down-popup" id="oldpopup">'+
+        '<div class="down-img-left"><img src="'+siteurl_static+'/resources/images/down-popup-pay.png"/></div>'+
+        '<div class="down-popup-txt">';
+
+    if (ownPublish != 1 || stateBought == 0) {
+        m_docDownloadHtml += h_test;
+    }
+
+    m_docDownloadHtml+='<p>标题：<a class="doc-title">'+$("#downtestw").html()+'</a></p><p>格式：<span>'+mformat+'</span></p><p>页码：<span>'+product_pagecount+'</span></p>'+
+        '<p class="gray9 prompt-text">'+lhtml+'</p>'+
+        '<div class="down-popup-btn"><a class="btn-down btn-send-task" href="javascript:void(0);" id="docDownloadButton" onclick="checkDownload(0);">点击下载此文档</a><a class="btn-cllect" href="javascript:void(0);" onclick="top.DOC88Window.close();parent.checkcollectproduct();">收藏此文档</a><input type =\'button\' class=\'btncss1\' style=\'display:none\' name=\'depositButton\' id =\'depositButton\' value = \'充值\' onclick=\'window.open("/uc/usr_account.php?act=deposit");setCookie("cdb_deposit_money",downloadPrice);setCookie("cdb_doc_url",window.location.href);windowClose();\' /></div></div></div>'+
+        '<div class="down-popup bj-shortp" id="newpopup" style="display:none">'+
+        '<div id="left_img">'+left_img+'</div><div class="down-popup-txt shortp-txt"><h5>当前积分：<span class="orange" id="now_count"></span>&nbsp;&nbsp;还需兑换积分：<span class="orange" id="gap"></span>'+vip_price+'</h5>'+
+        '<p>标题：<a class="doc-title">'+$("#downtestw").html()+'</a></p><p>格式：<span>'+mformat+'</span></p><p>页码：<span>'+product_pagecount+'</span></p><div id="show_info">'+show_info+'</div></div></div>'+
+        "<div id='depositpopup'  style='display:none' class='recharge-pop-if'><img src='"+siteurl_static+"/assets/images/else.png' alt='' /><div class='recharge-pop-con'><h3>是否成功充值？</h3><p><a class='btn-pay-success' href='javascript:DOC88Window.close();downloadAlertWindow(0,0);'>成功，下载文档</a><a class='recharge-btn-else' href='javascript:void(0);' onclick='javascript:DOC88Window.close();downloadAlertWindow(0,0);'>失败，使用微信充值</a><a href='/help/contact.html' target='_blank'>联系客服</a></p></div></div>";
+    document.getElementById("blkinfo").style.display = 'none';
+    var buyordloperator = "下载文档，请勿使用下载工具";
+    if(priceFree!=1){
+        buyordloperator = "清晰阅读全文或下载文档";
+    }
+    var howinfo_reload="<div class='lis_ju01' id='howclearid' >"+
+        "<img src='"+siteurl_static+"/skin/basic/images/20050423123030135s.gif' width='14' height='11' />"+
+        "<a href='"+site_url+"/help/index.html#faq' target='_blank' title='此文档需要支付积分后，才可以清晰显示，请点击`下载`按钮'>为什么看不清楚？</a>"+
+        "</div>"+
+        "<div class='lis_ju01' id='howviewall' >"+
+        "<img src='"+siteurl_static+"/skin/basic/images/20050423123030135s.gif' width='14' height='11' />"+
+        "<a href='"+site_url+"/help/index.html#faq' et='_blank' title='此文档需要支付积分后，才可以浏览全部内容，请点击`下载`按钮'>为什么只能看到部分内容？</a>"+
+        "</div>"+
+        "<div class='lis_ju01' id='howbuy' style='display:none'>"+
+        "<img src='"+siteurl_static+"/skin/basic/images/20050423123030135s.gif' width='14' height='11' />"+
+        "<a href='javascript:;' onclick='onclick_howbuy();return false;' target='_blank' title='注册>登录>兑换积分>下载'>如何下载?</a>"+
+        "</div>"+
+        "<div class='lis_ju01' id='howdownload' style='display:none'>"+
+        "<img src='"+siteurl_static+"/skin/basic/images/20050423123030135s.gif' width='14' height='11' />"+
+        "<a href='"+site_url+"/help/index.html#help2_21' target='_blank' title='下载文档操作步骤'>如何下载到本地电脑？</a>"+
+        "</div>";
+    document.getElementById("howinfo").innerHTML = howinfo_reload;
+
+    var blockinfobuy_reload="<div id='blkinfopoints_buy' style='display:none'>"+
+        "<b>下载步骤：</b><br>"+
+        "&nbsp;1，注册成为网站会员并登录；<br>"+
+        "&nbsp;2，查看帐户积分(点击'我的文档')，如果积分不足，请参考<a style='color:#1E35A5;' target='_blank' href='"+site_url+"/help/index.html#help2_25'>'如何获得积分'</a>；<br>"+
+        "&nbsp;3，点击本页面的'下载'按钮；<br>"+
+        "&nbsp;4，在'文档下载'页面，点击'确认'；<br>"+
+        "&nbsp;5，操作成功后，"+buyordloperator+"。<br>"+
+        "</div>"+
+        "<div id='blklogininfo_buy' >"+
+        "<div class='blkclosebtn'></div>"+
+        "<div class='blkinfotitle'><b style='font-size:16px'>"+product_shortname+"</b></div>"+
+        "<div id='blklogininfodoc_buy' class='blkinfodoc' ></div>"+
+        "<div id='blklogininfopoints_buy' class='blkinfopoints' ></div>"+
+        "<div class='blkinfobtn' >"+
+        "<input type='button' class='button' id='btncss2' value='关闭'   onclick='windowClose()' />"+
+        "</div>"+
+        "</div>";
+    document.getElementById("blkinfobuy").innerHTML = blockinfobuy_reload;
+    document.getElementById("blkinfobuy").style.display = 'none';
+
+
+    document.getElementById("complainInfo").style.display = "none";
+    document.getElementById("complainInfo").innerHTML = "<div>\
+            <div class='blkinfodoc' style='padding-top:20px;font-size:14px'>&nbsp;&nbsp;&nbsp;&nbsp;若此文档涉嫌侵害了您的权利，请参照<a style='color:#1E35A5;' target='_blank' href='"+site_url+"/help/copyright.html'>“网站版权声明”</a>，或登录网站后，在线提交<br/>举报信息。</div>\
+            <div style='font-size:14px;margin-left:20px;height:auto;line-height:25px;margin-top:5px;text-align:left;color:#C30'>&nbsp;</div>\
+            <div class='blkinfobtn' style='text-align:right; padding-right:40px'>\
+				<input type='button' class='btncss1'  value='登录' onclick='windowLoginForComplaint()'/>\
+            </div>\
+        </div>";
+
+    if(timeLimit!="" || product_pagecount<=1){
+        $("#howclearid")[0].style.display = 'none';
+        $("#howviewall")[0].style.display = 'none';
+    }else{
+        if(statePagekey == 1){
+            $("#howclearid")[0].style.display = 'none';
+        }else{
+            $("#howviewall")[0].style.display = 'none';
+        }
+    }
+    if(freeDLoadable==0)
+    {
+        $("#downloadpriceid").html("<font color='red'>上传用户未提供下载</font>");
+        if(madif==1)
+        {
+            $("#downloadpriceid").html("<font color='red'>未提供下载</font>");
+        }
+    }
+    else
+    {
+        if(freeDLoadable==3)
+        {
+            $("#downloadpriceid").html("阅读积分：<font color='red'>"+Math.round(downloadPrice*100)+"</font>");
+        }
+        else
+        {
+            $("#downloadpriceid").html("下载积分：<font color='red'>"+Math.round(downloadPrice*100)+"</font>");
+        }
+    }
+
+
+    $stateTimeLimit = 0;// 文档阅读期限, 0-没有权限, "notimelimit"-永久租阅, "times"-限次租阅, 其他-租阅到期时间
+    if(curDownloadTimes<=0){
+        if(priceFree ==1 ){
+            if(freeDLoadable == 2){
+                $("#howbuy")[0].style.display = 'block';
+            }
+        }else{
+            if(timeLimit==""){
+                $("#howbuy")[0].style.display = 'block';
+            }
+        }
+    }
+
+    if(doccheckstate==1 && logined==1 && ownPublish!=1 && curDownloadTimes>=1 ){
+        if(priceFree==0 || freeDLoadable==2){
+            $("#howdownload")[0].style.display = 'block';
+        }
+    }
+}
+
+//***继续下载
+function continueDownload()
+{
+    DOC88Window.setIFrame("_blank");
+    $("#form_productbuy").submit();
+}
+//登录
+function windowLogin()
+{
+    if(currentDoType==0)
+        DOC88Window.setIFrame("/js/home/window.html?act=window_login&actMethod=download&logintitle="+encodeURIComponent(docpricetype));
+    else
+        DOC88Window.setIFrame("/js/home/window.html?act=window_login&actMethod=print");
+}
+//注册
+function windowReg()
+{
+    if(currentDoType==0)
+        DOC88Window.setIFrame("/js/home/window.html?act=window_reg&actMethod=download");
+    else
+        DOC88Window.setIFrame("/js/home/window.html?act=window_reg&actMethod=print");
+}
+//关闭
+function windowClose()
+{
+    DOC88Window.close();
+}
+function isWinOs()
+{
+    var m_sPlatform = navigator.platform.toLowerCase();
+    var m_isWin = (m_sPlatform== "win32")||(m_sPlatform == "win64")  || (m_sPlatform== "windows");
+    return m_isWin;
+}
+function isMacOs()
+{
+	var m_sPlatform = navigator.platform.toLowerCase();
+	var m_sUserAgent= navigator.userAgent.toLowerCase();
+	var m_isMac = (m_sPlatform== "mac68k") || (m_sPlatform == "pacppc") || (m_sPlatform == "macintosh") || (m_sPlatform == "macintel"||m_sUserAgent.indexOf("macintosh")!=-1);
+	return m_isMac;
+}
+function onclick_howbuy(){
+    $('#blklogininfodoc_buy').html(docpricetype);
+    $('#blklogininfopoints_buy').html($('#blkinfopoints_buy').html());
+    DOC88Window.win({message: $('#blkinfobuy').html(),width:600,height:320,title:'如何下载',iframe:false});
+}
+//AJAX获得信息
+function getAjaxLogContent(address){
+    $.ajax({
+        url: address,
+        dataType:"javascript",
+        success: function(msg){
+            $("#ajaxloglist").html(msg);
+        }
+    });
+}
+var m_tsLabel = "";
+function getDescribe(doType)
+{
+    var m_label1 = "您可以选择收藏此文档，通过个人中心“<a class='link' target='_blank' href='/uc/doc_manager.php?act=doc_list&state=collect'>收藏夹</a>”在线浏览此文档。";
+    var m_label2 = "您可以点击按钮下载此文档，稍后可到个人中心“<a class='link' target='_blank' href='/uc/doc_manager.php?act=doc_list&state=bought'>我的下载</a>”中查看已下载的文档。";
+    var m_label3 = "您可以选择点击按钮下载此文档，或到个人中心“<a class='link' target='_blank' href='/uc/doc_manager.php?act=doc_list&state=bought'>我的下载</a>”列表中下载此文档。";
+    if(freeDLoadable==0)
+    {
+        m_label2 = "您可以到任务平台求助此文档，让更多网友为您提供帮助";
+        m_label3 = m_label2;
+    }
+    Viewer.m_totalPage = product_pagecount;
+    var stateDLRemainTimes = $("#stateDLRemainTimes").val();
+    var describe = "";
+    var closeButtonType = 0;
+    var deposit = 0;
+    var icon = "<i class='iconfont' style='color: #F60; font-size:24px; vertical-align:-5%'>&#xe6b2;</i>";
+    if(doType==0) //下载
+    {
+        if(ownPublish==1)
+        {
+            m_tsLabel = m_label3;
+            describe="点击按钮下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)。";
+            return icon+describe+"||"+closeButtonType;
+        }
+        if(priceFree==1) //免费阅读
+        {
+            if(freeDLoadable==1) //免费下载
+            {
+                if(logined==0)	//尚未登录
+                    describe="登录后可下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)。";
+                else	//已经登录
+                    describe="点击按钮下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)。";
+                m_tsLabel = m_label3;
+            }
+            else if(freeDLoadable==2) //积分下载
+            {
+                if(logined==0)	//尚未登录
+                {
+                    describe = "下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)需要 <font color='red'>"+Math.round(downloadPrice*100)+"</font> 积分。";
+                    m_tsLabel = m_label2;
+                }
+                else
+                {
+                    if(stateDLRemainTimes>0)
+                    {
+                        describe="点击按钮下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)。";
+                        m_tsLabel = m_label3;
+                    }
+                    else
+                    {
+                        if(buyerMoney-docprice<0)
+                        {
+                            deposit = 1;
+                        }
+                        if(deposit==1)
+                        {
+                            describe = "下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)需要  <font color='red'>"+Math.round(downloadPrice*100)+"</font> 积分。";
+                            m_tsLabel = m_label2;
+                        }
+                        else
+                        {
+                            describe = "下载此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)将会扣除 <font color='red'>"+Math.round(downloadPrice*100)+"</font> 积分。";
+                            m_tsLabel = m_label2;
+                            closeButtonType = 1;
+                        }
+
+                    }
+                }
+            }
+            else	//为提供下载
+            {
+                m_tsLabel = m_label1;
+                describe="此文档(<span class='link'>"+mformat+"</span>格式,共<span class='link'>"+Viewer.m_totalPage+"</span>页)上传用户未提供下载。";
+            }
+        }
+    }
+    return icon+describe+"||"+closeButtonType;
+}
+function m_getDownWinWidth()
+{
+    var m_width = $("#downtestw").width()+80;
+    if(m_width<600)
+    {
+        m_width = 600;
+    }
+    return m_width;
+}
+/****下载提示
+ 0 表示 第一次点下载提示
+ 1 登录成功后 调用
+ 2 购买成功后调用
+ doType 0.下载 1.打印 4回调询问页面
+ ***/
+var currentDoType = 0;
+var intervalId = null;
+function downloadAlertWindow(alertType,doType)
+{
+    document.getElementById("txtDoMethod").value = doType;
+    currentDoType = doType;
+    var stateDLRemainTimes = $("#stateDLRemainTimes").val();
+    var doTitle = "文档下载";
+    if(alertType==0)
+    {
+        var m_height = 270;
+        var m_width = m_getDownWinWidth();
+        if(Viewer.m_ie6)
+        {
+            m_width = m_width+20;
+        }
+        var login_if = getCookie("cdb_login_if");
+        if(login_if != 1){
+            m_width = 600;
+            m_height = 270;
+        }
+        DOC88Window.win({message:'',height:m_height,width:m_width,title:doTitle,iframe:true});
+    }
+    else{
+        // pageInitialization();
+        // DOC88Window.resizeWin(m_getDownWinWidth(),270);
+    }
+    if(ownPublish==1||stateBought==1)
+    {        
+	    DOC88Window.setMessage(m_docDownloadHtml);    
+      showPanel(0);
+	    checkDownload(0);
+	    return;
+    }
+  
+    var docid = $('#txtPcode').val();
+    $.ajax({
+        url: root_path+'doc.php?',
+        type: 'get',
+        dataType: 'html',
+        data: 'act=ajax_getstate&doccode='+product_code+'&checkorder=1&checkmoney=1&priceFree='+priceFree+"&freeDLoadable="+freeDLoadable+"&freePrintable="+freePrintable,
+        success: function(data)
+        {
+            data = eval('(' + data + ')');
+            u_v = data.u_v;
+            conif = data.conif;
+
+            if(alertType!=0){
+                //初始化页面html相关
+                pageInitialization();
+                DOC88Window.resizeWin(m_getDownWinWidth(),270);
+            }
+           
+            stateBought = data.stateBought;
+            buyerMoney = data.stateBuyermoney;
+            statePrintRemainTimes = data.statePrintRemainTimes;
+            curPrintTimes = statePrintRemainTimes;
+            $("#statePrintRemainTimes").val(statePrintRemainTimes);
+            if(data.userID == member_id)
+                ownPublish = 1;
+            var blLoginButton = document.getElementsByName("blLoginButton");
+            var blRegButton = document.getElementsByName("blRegButton");
+            var stateLogined = data.stateLogined;
+            stateDLRemainTimes = data.stateDLRemainTimes;
+            $("#stateDLRemainTimes").val(stateDLRemainTimes);
+            curDownloadTimes = stateDLRemainTimes;
+            $("#blAlertPotions").html("&nbsp;");
+            var buttonAndDes = getDescribe(doType);
+            var closeButtonType = buttonAndDes.split("||")[1];
+            var exceptionLogin = false;
+            if(logined!=stateLogined||(current_memeber_id!=""&&data.userID!=current_memeber_id))
+            {
+                exceptionLogin = true;
+            }
+            logined = stateLogined;
+            current_memeber_id = data.userID;
+
+            DOC88Window.setMessage(m_docDownloadHtml);
+
+            $(".phone-down i").hover(function() {
+                $(this).parent().find('.bj-scan-code').show();
+            });
+            if(stateLogined!=1)
+            {
+                //var login_if = getCookie("cdb_logined");
+                var login_if = 1;
+                if(conif=="0"){
+                    windowLogin();
+                }else{
+                    if(login_if){
+                        windowLogin();
+                    }else{
+                        download_nologin_scan();
+                    }
+                }
+
+                if(exceptionLogin)
+                {
+                    setPageStateByData(data);
+                }
+                return;
+            }
+
+            $("#downloadTsLabel").html(m_tsLabel);
+           
+            document.getElementById("depositButton").style.display ="none";
+            if(alertType!=2)
+            {
+                //设置下载按钮文字
+                var downloadButton = document.getElementById("docDownloadButton");
+                downloadButton.value ="点击下载此文档";
+                if(stateDLRemainTimes>0)
+                {
+                    downloadButton.value ="点击下载此文档";
+                }
+                else
+                {
+                    if(priceFree!=1)
+                    {
+
+                        if(timeLimit=="notimelimit")
+                        {
+                            downloadButton.value ="点击下载此文档";
+                        }
+                        else
+                        {
+                            if(downloadable==0)
+                            {
+                                downloadButton.value ="阅读";
+                            }
+                            else
+                            {
+                                downloadButton.value ="阅读/下载";
+                            }
+
+                        }
+
+
+                    }
+                }
+                downloadButton.style.display = "";
+                if(ownPublish==1)
+                {
+                    downloadButton.value ="点击下载此文档";
+                }
+                if(data.stateOrderChecking == 1){
+                    $("#blkorderinfodoc").html("<i class='iconfont' style='color: #F60; font-size:24px; vertical-align:-5%'>&#xe6b2;</i>您的下载订单正在审核中，请稍后再试。");
+                    $("#downloadTsLabel").html("您可以到个人中心“<a class='link' target='_blank' href='/uc/doc_manager.php?act=doc_list&state=bought'>我的下载</a>”列表中下载此文档，或“<a class='link' target='_blank' href='/help/contact.html'>联系客服</a>”。");
+                    $("#blAlertPotions").html("&nbsp;");
+                    $("#docDownloadButton").hide();
+                    document.getElementsById("docCloseButton").value ="关闭";
+                    stateOrderChecking = 1;
+
+                }else{
+                    if (doType == 4){
+                    	showPanel(3);//更多充值金额面板
+                        return false;
+                    }
+                    //如果需要 购买 的时候判断积分 情况
+                    if(((stateDLRemainTimes==0&&doType==0)||(statePrintRemainTimes==0&&doType==1&&freePrintable==2))&&ownPublish==0)
+                    {
+                        var stateBuyermoney = data.stateBuyermoney;
+                        var deposit = 0;
+                        if(doType==0)
+                        {
+                            if(((u_v == "1"||u_v == "0") &&(stateBuyermoney-docprice<0))){
+                                $("#now_count").html(Math.round(stateBuyermoney*100));
+                                var dddd=docprice-stateBuyermoney;
+                                dddd = Math.round(dddd*100)/100;
+                                $("#gap").html(Math.round((docprice-stateBuyermoney)*100));
+
+                                if(conif=="0"){
+                                	 showPanel(1);//显示微信充值	
+                                }else{
+                                    DOC88Window.resizeWin(600,270);
+                                    deposit = 1;
+
+                                    $("#pay_money").html(dddd+'元');
+                                    $.ajax({
+                                        url: '/uc/usr_account.php?act=savedeposit&c=3',
+                                        type: 'post',
+                                        dataType: 'html',
+                                        data: 'paymentsub=0&payment=weixin&txt_amount='+dddd+'&amount='+dddd,
+                                        success: function(data){
+                                            var dataObj=eval("("+data+")");
+                                            if(dataObj.result==1)
+                                            {
+                                                $.ajax({
+                                                    url: '/uc/usr_account.php?act=weixinpay&orderno='+dataObj.order+'&c=1',
+                                                    type: 'post',
+                                                    dataType: 'html',
+                                                    success: function(data){
+                                                        var dataObj1=eval("("+data+")");
+                                                        if(dataObj1.result==1)
+                                                        {
+                                                            $.ajax({
+                                                                url:'//assets.doc88.com/assets/uc/js/qrcode_nomargin.js',
+                                                                dataType:"script",
+                                                                cache:true,
+                                                                success:function(){
+                                                                    $(".wx-pay-logo").attr('src', siteurl_static + '/resources/images/wx-pay.png');
+                                                                    qrcode_img(dataObj1.url,"doc_qrcode",146);
+                                                                    var times=0;
+                                                                    intervalId = window.setInterval(function(){
+                                                                        $.ajax({
+                                                                            url: '/uc/usr_account.php',
+                                                                            type: 'get',
+                                                                            dataType: 'html',
+                                                                            data: 'act=result&do_type=check&order_no='+dataObj.order,
+                                                                            success: function(data){
+                                                                                var dataObj=eval("("+data+")");
+                                                                                times++;
+                                                                                if(dataObj.result==3)
+                                                                                {
+                                                                                    window.clearInterval(intervalId);
+                                                                                    checkDownload(0);
+
+                                                                                }
+                                                                                if(times==20){
+                                                                                    window.clearInterval(intervalId);
+                                                                                }
+                                                                            }
+                                                                        });
+
+                                                                    },5000);
+
+                                                                }
+                                                            })
+
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                    showPanel(1);//显示微信充值	
+                                   
+                                }
+                            }
+                            if(deposit==1)
+                            {
+                                var tsStr = "您的积分已不足(当前可用积分为<font color='red'>"+((parseFloat(stateBuyermoney))*100).toFixed(0)+"</font>";
+
+                                tsStr+="),请及时充值兑换积分。";
+                                $("#blAlertPotions").html(tsStr);
+                                $("#depositButton").show();
+                            }
+                        }
+                        else
+                        {
+                            if(stateBuyermoney-freePrintprice<0)
+                            {
+                                deposit = 1;
+                            }
+                            if(deposit==1)
+                            {
+                                var tsStr = "您的积分已不足(当前可用积分为<font color='red'>"+((parseFloat(stateBuyermoney))*100).toFixed(0)+"</font>";
+
+                                tsStr+="),请及时充值兑换积分。";
+                                $("#blAlertPotions").html(tsStr);
+                                $("#depositButton").show();
+                            }
+                        }
+                        if(priceFree==1 && freeDLoadable==0&&doType==0)
+                        {
+                            $("#blAlertPotions").html("&nbsp;");
+                        }
+                        if(freePrintable==0&&doType==1)
+                        {
+                            $("#blAlertPotions").html("&nbsp;");
+                        }
+                    }
+                }
+                //不能下载时，隐藏下载按钮
+                if(doType==0)
+                {
+                    if((doccheckstate != 1||(priceFree==1 && freeDLoadable==0) || deposit==1 ||stateOrderChecking==1||(timeLimit=="notimelimit"&&downloadable==0))&&ownPublish==0)
+                    {
+                        //$("#docDownloadButton").hide();
+                        $("#docDownloadButton").val("到任务平台求助此文档");
+                        $("#docDownloadButton").html("到任务平台求助此文档");
+                        $("#docDownloadButton").attr("onclick","");
+                        $("#docDownloadButton").click(function(){
+                            windowClose();
+                            goto_renwu();
+                        });
+                    }
+                }
+                else
+                {
+                    if((doccheckstate != 1||freePrintable==0|| deposit==1 ||stateOrderChecking==1)&&ownPublish==0)
+                    {
+                        $("#docDownloadButton").hide();
+                    }
+                }
+            }
+            if(alertType==3)
+            {
+            	checkDownload(0);
+            }
+         
+        }
+    });
+}
+
+
+/***重新设置页面状态****/
+function reloadPageState(method)
+{
+    var stateDLRemainTimes = $("#stateDLRemainTimes").val();
+    var docid = $('#txtPcode').val();
+    $.ajax({
+        url: root_path+'doc.php?',
+        type: 'get',
+        dataType: 'html',
+        async: false,
+        data: 'act=ajax_getstate&doccode='+product_code+'&checkorder=1&checkmoney=1&priceFree='+priceFree+"&freeDLoadable="+freeDLoadable+"&freePrintable="+freePrintable,
+        success: function(data){
+            var data=eval("("+data+")");
+            setPageStateByData(data);
+        }
+    });
+}
+/****设置setPageState***/
+function setPageStateByData(data)
+{
+    //vip
+    u_v = data.u_v;
+    conif = data.conif;
+    if(data.userID == member_id)
+        ownPublish = 1;
+    var m_statePrintRemainTimes = data.statePrintRemainTimes;
+
+    curPrintTimes = m_statePrintRemainTimes;
+    $("#statePrintRemainTimes").val(m_statePrintRemainTimes);
+    var stateLogined = data.stateLogined;
+    logined = stateLogined;
+    if(ownPublish == 1){
+        data.stateTimeLimit = "notimelimit";
+    }
+    stateDLRemainTimes = data.stateDLRemainTimes;
+    $("#stateDLRemainTimes").val(stateDLRemainTimes);
+    curDownloadTimes = stateDLRemainTimes;
+    //初始化页面html相关
+    pageInitialization();
+}
+
+/***提交订单***/
+function submitOrder()
+{
+    $("#docDownloadButton").attr("disabled","true");
+    showPanel(0);	//显示加载动画
+    $.ajax({
+        url: root_path+'doc.php',
+        type: 'get',
+        dataType: 'html',
+        async: false,
+        data: 'act=window_order&do_method='+currentDoType+'&txtPcode='+product_code+'&radioPriceid=1&method=ajax'+"&refercode="+refercode+"&getcode="+getcode,
+        success: function(data)
+        {
+            data = eval('(' + data + ')');
+            if(data.result==1)
+            {
+                if(data.stateOrderChecking == 1){
+
+                    // alert($('#bldownloadinfoAlert').html());
+                    DOC88Window.setMessage("您对此文档的订单, 正处于待审核状态, 请等待系统处理后, 再操作。");
+                    //$("#blkorderinfodoc").html("您对此文档的订单, 正处于待审核状态, 请等待系统处理后, 再操作。");
+                    //$("#blAlertPotions").html("&nbsp;");
+                    // $("#docDownloadButton").hide();
+                    //document.getElementById("docCloseButton").value ="关闭";
+                    stateOrderChecking = 1;
+                }else{
+                    reloadPageState(0);
+                    checkDownload(0);
+                }
+            }
+            else
+            {
+            	alert(data.message);
+                $("#blkorderinfodoc").html(data.message);
+                $("#docDownloadButton").removeAttr("disabled");
+            }
+        }
+    });
+}
+
+var m_checkingFile = false;
+function m_checkFileExist(m_link,m_type)
+{
+    if(m_type==0&&m_checkingFile)
+    {
+        return;
+    }
+    m_checkingFile = true;
+    $.ajax({
+        url: "/doc.php?act=cse&pcode="+product_code,
+        dataType:"html",
+        async: false,
+        success: function(msg){
+            if(msg=="1")
+            {
+                window.location.href = m_link;
+                $("#blkorderinfodoc").html("");
+                windowClose();
+                m_checkingFile = false;
+            }
+            else
+            {
+                window.setTimeout(function(){m_checkFileExist(m_link,1)},3000);
+            }
+        }
+    });
+}
+/****下载/阅读/打印文档****/
+function checkDownload(downloadType){
+    var downloadLabel = "如果未弹出文件保存对话框，请到“<a href='/portal/usr_order.php?act=bought' style='color:#1E35A5;' target='_blank'>会员中心</a>-><a href='/portal/usr_order.php?act=bought' style='color:#1E35A5;' target='_blank'>已下载文档</a>”页面下载。";
+    //文档下载/阅读
+    if(currentDoType==0)
+    {
+        if(freeDLoadable==3&&stateBought==0)
+        {
+            buyContinueRead();
+        }
+        var stateDLRemainTimes = $("#stateDLRemainTimes").val();
+        if(stateDLRemainTimes=="")
+            stateDLRemainTimes = 0;
+        if(stateDLRemainTimes>0||ownPublish==1)
+        {
+            $.ajax({
+                url: root_path+"member.php",
+                type: 'get',
+                dataType: 'html',
+                data: 'act=ajax_checkdownload',
+                async: false,
+                success: function(data){
+                    $.ajax({
+                        url: "/doc.php?act=download&pcode="+product_code+"&dlrand="+data+"&dlcode=&t=1",
+                        dataType:"html",
+                        async: false,
+                        success: function(msg)
+                        {
+                            msg = eval('(' + msg + ')');
+                            if(msg.e==1)
+                            {
+                            	showPanel(4);	//显示下载成功
+                                window.location.href = msg.link;
+                            }
+                            else
+                            {
+                                windowClose();
+                                DOC88Window.win({message: $('#loadDiv').html(),width:m_getDownWinWidth(),height:270,title:'文档下载',iframe:false});
+                                m_checkFileExist(msg.link,0);
+                            }
+                            if(checkdl!=1){
+                                curDownloadTimes--;
+                            }
+                            return false;
+                        }
+                    });
+
+                }
+            });
+        }
+        else
+        {
+            if(priceFree==1)
+            {
+                submitOrder();
+            }
+            else
+            {
+                showPanel(4);	//显示下载成功
+                DOC88Window.setIFrame("_blank");
+                $("#form_productbuy").submit();
+                return false;
+            }
+        }
+
+    }
+
+}
+
+
+//收藏
+function checkcollectproduct(){
+    addToFolder(product_id,"view");
+}
+var checkDkReadIndex = 0;
+var checkDkTimes = 0;
+function checkDkReadIf(type,sourceType)
+{
+	if(checkDkReadIndex>0)
+	{
+		window.clearTimeout(checkDkReadIndex);	
+	}
+	 $.ajax({
+	        url: '/doc.php?act=check_dk_read&uuid='+uuid,
+	        type: 'get',
+	        dataType: 'json',//
+	        success: function(msg)
+	        {            
+				if(msg.result==0)
+				{
+					
+					checkDkTimes++;
+					maxCheckTimes = 10;
+					if(type==1)
+					{
+						maxCheckTimes = 50;
+					}
+					if(checkDkTimes>maxCheckTimes)
+					{
+						setCookie("dkinstalled","0",24*180);
+						if(sourceType==4)
+						{
+							currenWin.setBtnText("下载稻壳阅读器，免费复制打印此文档");
+						}
+						else
+						{
+							$(".btn-reader").html('下载稻壳阅读器，免费离线阅读');
+						}
+						
+						checkDkTimes = 0;
+
+					}
+					else
+					{
+						var checkTime = 1000;
+						if(type==1)
+						{
+							checkTime = 3000;
+						}
+						checkDkReadIndex = window.setTimeout(function(){
+							checkDkReadIf(type,sourceType);
+						}, checkTime);
+					}
+				}
+				else
+				{
+					setCookie("dkinstalled","1",24*180);
+					checkDkTimes = 0;
+					if(sourceType==4)
+					{
+						currenWin.setBtnText("使用稻壳阅读器，免费复制打印此文档");
+					}
+					else
+					{
+						$(".btn-reader").html('使用稻壳阅读器，免费离线阅读');
+					}
+					
+				}
+	        }
+	    });    
+}
+function startDkClient(type,sourceType)
+{
+	var checkTime = 1000;
+	if(type==1)
+	{
+		checkTime = 3000;
+	}
+	else
+	{
+		startIFrame.location.href = "docbox://"+dkid;
+	}
+	window.setTimeout(function(){
+		checkDkReadIf(type,sourceType);
+	}, checkTime);
+
+}
+var currenWin = null;
+//下载稻壳阅读器
+function downloaddkclient(type){    
+
+	var downloadUrl = "http://www.daokeyuedu.com/docbox/稻壳阅读器安装程序.exe";
+	if(isMacOs())
+	{
+		downloadUrl = "http://www.daokeyuedu.com/docbox/稻壳阅读器.dmg";
+	}
+    if(type==3)
+    {
+       window.location.href = downloadUrl;
+       return;
+    }
+    var source = 0;
+    if(type==1)
+    {
+    	source = 1;
+    }
+    $.ajax({
+        url: '/doc.php?act=save_dk_read&p_code='+product_code+'&source='+source+'&uuid='+uuid,
+        type: 'get',
+        dataType: 'json',//
+        success: function(msg)
+        {            
+			if(type==0||type==4)
+			{
+				var dkinstalled = getCookie("dkinstalled");
+				if(dkinstalled==1)
+				{
+					var text = '稻壳阅读器启动中 <img style="vertical-align: middle;" src="'+siteurl_static+'/resources/images/ajax-loader-2.gif" alt="" width="16">';
+					startDkClient(0,type);
+					if(type==4)
+					{
+						currenWin.setBtnText(text);
+					}
+					else
+					{
+						$(".btn-reader").html(text);
+					}
+					
+				}
+				else
+				{
+					startDkClient(1,type)
+		        	window.location.href = downloadUrl;
+				}
+				
+			}
+			else
+			{
+			  	 DOC88Window.win({
+				        message: '/doc.php?act=windows_daoke&type='+type,
+				        width: 600,
+				        height: 240,
+				        title: '稻壳阅读器',
+				        iframe: true
+				    })
+			}	 
+        }
+    });    
+    
+}
+
+//关注好友
+/**添加某个用户为好友****/
+function addToFriend(member_id)
+{
+    $.ajax({
+        url: '/portal/usr_friend.php',
+        type: 'get',
+        dataType: 'json',//
+        data: 'act=ajax_addFriend&friend_id='+member_id,
+        success: function(msg)
+        {
+            if(msg.stateLogined==0)
+            {
+                DOC88Window.win({message: '/js/home/window.html?act=window_login&actMethod=addFriend&',width:600,height:200,title:'添加好友',iframe:true});
+                return;
+            }
+            if(msg.self)
+            {
+                showTipWin("添加失败，不能添加自己为好友!");
+                return ;
+            }
+            if(msg.exist)
+            {
+                showTipWin("您已经成功添加"+nick_name+"为好友!");
+                return;
+            }
+            showTipWin("您已经成功添加"+nick_name+"为好友!");
+        }
+    });
+    return;
+}
+
+//举报文档
+function complaint()
+{
+    shortcutComplaint();
+}
+function showWXDeposit()
+{
+	showPanel(1);
+}
+function autoDownload()
+{      
+     DOC88Window.setMessage(m_docDownloadHtml); 
+     document.getElementById('ym-header-text').innerHTML="文档下载";   
+     checkDownload(0);
+}
+
+function showPanel(type)
+{
+	//显示加载动画
+	if(type==0)
+	{
+		$("#downlaodLoadDiv").show();	  //等待动画界面
+		$("#downsuccess").hide();		  //下载成功界面
+		$("#bldownloadinfoAlert").hide(); //下载总窗口
+	}
+	else if(type==1)	//显示微信充值
+	{
+		$("#downlaodLoadDiv").hide();	  //等待动画界面
+		$("#downsuccess").hide();		  //下载成功界面
+		$("#bldownloadinfoAlert").show(); //下载总窗口
+		$("#depositpopup").hide();  //充值成功
+		$("#newpopup").show();		//微信充值
+		$("#oldpopup").hide();		//有权限的时候的下载界面
+		document.getElementById('ym-header-text').innerHTML="微信扫码充值下载此文档";
+	}
+	else if(type==2)	//显示有权限下载界面
+	{
+		$("#downlaodLoadDiv").hide();	  //等待动画界面
+		$("#downsuccess").hide();		  //下载成功界面
+		$("#bldownloadinfoAlert").show(); //下载总窗口
+		$("#depositpopup").hide();  //充值成功
+		$("#newpopup").hide();		//微信充值
+		$("#oldpopup").show();		//有权限的时候的下载界面
+	}
+	else if(type==3)	//显示是否充值成功界面
+	{
+		$("#downlaodLoadDiv").hide();	  //等待动画界面
+		$("#downsuccess").hide();		  //下载成功界面
+		$("#bldownloadinfoAlert").show(); //下载总窗口
+		$("#depositpopup").show();  //充值成功
+		$("#newpopup").hide();		//微信充值
+		$("#oldpopup").hide();		//有权限的时候的下载界面
+		document.getElementById('ym-header-text').innerHTML="更多优惠充值";
+	}
+	else if(type==4)	//显示下载成功界面
+	{
+		$("#downlaodLoadDiv").hide();	  //等待动画界面
+		$("#downsuccess").show();		  //下载成功界面
+		$("#bldownloadinfoAlert").hide(); //下载总窗口
+	}
+}
+
+/****举报登陆***/
+function windowLoginForComplaint()
+{
+    DOC88Window.setIFrame('/js/home/window.html?act=window_login&actMethod=complaint&p_code='+product_code+'&logintitle='+encodeURIComponent('登录网站在线提交您的举报信息'));
+}
+//快捷举报文档
+function shortcutComplaint()
+{
+    DOC88Window.win({message: '/info.php?t=1&act=shortcut_complaint&actMethod=complaint&p_code='+product_code,width:600,height:490,title:'举报文档',iframe:true});
+}
+//侵权举报
+function complaintAlert()
+{
+    DOC88Window.resizeWin(600,200);
+    DOC88Window.setMessage($('#complainInfo').html());
+}
+function setOrderChecking(m_orderCheck){
+    stateOrderChecking = m_orderCheck;
+}
+function download_nologin_scan()
+{
+//	DOC88Window.win({message: ' ,width:600,height:270,title:'微信支付',iframe:true});
+    DOC88Window.setIFrame('/doc.php?act=wxpay_iframe_show&money='+freeDLprice);
+}
+function app_scan_download(){
+    document.getElementById('ym-header-text').innerHTML="积分不足无法下载此文档";
+    DOC88Window.setIFrame('/doc.php?act=app_scan_download&money='+freeDLprice+'&p_code='+product_code);
+} 
+ //分享道客圈
+ function listShare(p_id,type){
+     $.get("/member.php?act=islogin", function(data) {
+         if (data == 1) {
+             DOC88Window.win({
+                 message: '/circle.php?act=share_circle_page&public_id='+p_id+'&type='+type,
+                 width: 600,
+                 height: 280,
+                 title: '分享',
+                 iframe: true
+             });
+         }else{
+             DOC88Window.win({
+                 message: "/js/home/window.html?v=1&act=window_login&actMethod=operationList",
+                 height: 270,
+                 width: 600,
+                 title: "道客巴巴帐号登录",
+                 iframe: true
+             });
+         }
+     });
+
+ }
+//微信阅读页面
+function weixin_read(pcode){
+    DOC88Window.win({
+        message: '/doc.php?act=readqrcode&p_code='+pcode,
+        width: 320,
+        height: 370,
+        title: '微信扫码用手机阅读',
+        iframe: true
+    });
+}
+//微信阅读页面
+function app_read(pcode){
+    DOC88Window.win({
+        message: '/doc.php?act=qrcode&p_code='+pcode+'&from=1',
+        width: 320,
+        height: 370,
+        title: 'APP扫码阅读',
+        iframe: true
+    });
+}
+function goto_renwu(){
+    window.open("/renwu/find.php?f="+window.location.href);
+    return false;
+}
+function goto_renwu_find(){
+
+    window.open("/renwu/find.php");
+    return false;
+}
+function goto_uploadfile(){
+    window.open("/uc/index.php?act=upload");
+    return false;
+}
+//加入文辑
+function add_corpus(){
+    $.get("/member.php?act=islogin", function(data) {
+        if (data == "1") {
+            DOC88Window.win({
+                message: "/corpus.php?act=add_corpus&p_code="+product_code,
+                width: 600,
+                height: 370,
+                title: '加入文辑',
+                iframe: true
+            })
+        }else{
+            DOC88Window.win({
+                message: "/js/home/window.html?v=1&act=window_login&actMethod=read_add_corpus",
+                height: 270,
+                width: 600,
+                title: "道客巴巴帐号登录",
+                iframe: true
+            });
+        }
+    });
+}
+var m_stop_more = false;
+function getMoreUserDoc(m_memberId,m_page)
+{
+	if(m_stop_more&&m_loading)
+		return;
+	var m_loading = true;
+	if(m_page>1)
+	{
+		$('#bookListUL').width(1496*m_page);
+		$('#bookListUL').append('<li class="book0" id="bookLoad"><div class="books"><div style="padding-top:68px;padding-left:48px;"><img src="'+Viewer.m_staticUrl+'/assets/images/ajax-loader.gif"/></div></div></li>');
+	}
+	$.ajax({
+	        url: 'doc.php?act=moredoc&m='+m_memberId+'&page='+m_page,
+	        type: 'get',
+	        dataType: 'html',
+	        success: function(html){
+		   m_loading = false;
+		   if(m_page==1)
+		   {
+		       $('#bookbox').html(html);
+		        var m_cl = $("#bookListUL").children().length;
+				 if(m_cl<10)
+				{
+				   $('#bookListUL').width(148*m_cl);
+				}
+				$('.next').click(function(){
+					if(m_loading)
+						return;
+					var bookbox=$('#bookbox');
+					if(bookbox.is(":animated"))return false;
+					bookbox.animate({scrollLeft:"+=296"},100);
+					if($('#bookbox').width()+$('#bookbox').scrollLeft()>=$('#bookListUL').width()-148)
+					{
+						if(m_cl>=10)
+						{
+							  getMoreUserDoc(m_memberId,++m_page);
+						}
+					}	
+				});
+				$('.prev').click(function(){
+					var bookbox=$('#bookbox');
+					if(bookbox.is(":animated"))return false;
+					bookbox.animate({scrollLeft:"-=296"},100);
+				});	
+		   }
+	       else
+		    {
+		    
+		       $("#bookLoad").remove();
+		       $('#bookListUL').append(html);
+		       var m_cl = $("#bookListUL").children().length;
+		       if(m_cl<10)
+		           m_stop_more = true;
+
+		        $('#bookListUL').width(148*m_cl);
+		    }
+		     setDocImg(Viewer.m_pngUrl);
+	        }
+	    });
+}
+function initDownloadWin()
+{     
+   	DOC88Window.setMessage(m_docDownloadHtml);      
+   	showPanel(3);    
+}
+function showDocRecharge() {
+    window.clearInterval(intervalId);
+    DOC88Window.win({
+        message: '/doc.php?act=doc_recharge&p_code='+product_code,
+        width: 600,
+        height: 505,
+        title: '扫码充值下载此文档',
+        iframe: true
+    });
+}
+
+//
+function showdepositpopup() {
+    downloadAlertWindow(0,0);
+    showPanel(3);
+}
+/**直接扫码下载文档***/
+function download_scan()
+{
+	DOC88Window.close();
+	DOC88Window.win({message: '/doc.php?act=wxpay_iframe_show&money='+freeDLprice ,width:600,height:270,title:'微信支付',iframe:true});
+}
